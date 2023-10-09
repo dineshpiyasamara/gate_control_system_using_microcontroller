@@ -1,10 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 import serial
-from serial_communication import send_to_arduino, read_from_arduino
+from utils import send_to_arduino, read_from_arduino
 
 root = tk.Tk()
-root.title('MASTER')
+root.title('Gate Control System')
 root.geometry('300x330')
 root.resizable(False, False)
 
@@ -30,8 +30,9 @@ def reset_func():
     
 
 def generate_token():
-    if(gate_number.get() != ''):
-        send_to_arduino(gate_number.get(), master_ser)
+    if(len(gate_number.get()) != 0):
+        print(gate_number.get()[-1])
+        send_to_arduino(gate_number.get()[-1], master_ser)
 
         while (master_ser.inWaiting() == 0):
             pass
@@ -41,12 +42,8 @@ def generate_token():
         key_var.set(token)
         reg_btn.configure(state='disabled')
 
-ttk.Label(root).pack()
-
-name_label = ttk.Label(root, text='Name')
-name_entry = ttk.Entry(root)
-name_label.pack()
-name_entry.pack()
+heading = ttk.Label(root, text='MASTER', font='arial 20 bold')
+heading.pack(pady=10)
 
 ttk.Label(root).pack()
 
@@ -58,15 +55,13 @@ nic_entry.pack()
 ttk.Label(root).pack()
 
 gate_label = ttk.Label(root, text='Select Slave')
-gate1 = ttk.Radiobutton(root, text='Slave 1', value='1', variable=gate_number)
-gate2 = ttk.Radiobutton(root, text='Slave 2', value='2', variable=gate_number)
+combobox = ttk.Combobox(root, values=["Slave 1", "Slave 2"], textvariable=gate_number, state="readonly")
 gate_label.pack()
-gate1.pack()
-gate2.pack()
+combobox.pack()
 
-ttk.Label(root).pack()
+ttk.Label(root).pack(pady='20')
 
-reg_btn = ttk.Button(root,text="Register", command=lambda:generate_token())
+reg_btn = ttk.Button(root,text="Generate Token", command=lambda:generate_token())
 reg_btn.pack(ipadx=20, ipady=10)
 
 key_var.set("")

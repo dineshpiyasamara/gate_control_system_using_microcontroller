@@ -1,12 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
 import serial
-from serial_communication import send_to_arduino_slave, read_from_arduino
+from utils import send_to_arduino_slave, read_from_arduino
 import time
 
 
 root = tk.Tk()
-root.title("SLAVE 1")
+root.title("Gate Control System")
 root.geometry('300x250')
 root.resizable(False, False)
 
@@ -19,7 +19,7 @@ def get_response():
 
     while (slave_ser.inWaiting() == 0):
         if time.time() - start_time > 3:
-            return "Try Again"
+            return "Incorrect Token"
 
     result = read_from_arduino(slave_ser)
 
@@ -37,6 +37,8 @@ def submit_token():
     
     submit_button.configure(state="active")
 
+heading = ttk.Label(root, text='SLAVE 1', font='arial 20 bold')
+heading.pack(pady=10)
 
 ttk.Label(root).pack()
 

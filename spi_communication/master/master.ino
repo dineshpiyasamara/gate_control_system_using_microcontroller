@@ -7,6 +7,7 @@
 UUID uuid;
 String gate_1_passes[DB_CAP];
 String gate_2_passes[DB_CAP];
+const int tokenSize = 32;
 int gate_1_pos = 0;
 int gate_2_pos = 0;
 
@@ -14,7 +15,7 @@ void setup(void) {
   Serial.begin(115200);
 
   pinMode(SS_2, OUTPUT);
-  digitalWrite(SS, HIGH);  // ensure SS stays high for now
+  digitalWrite(SS, HIGH);
   digitalWrite(SS_2, HIGH);
   // Put SCK, MOSI, SS pins into output mode
   // also put SCK, MOSI into LOW state, and SS into HIGH state.
@@ -25,18 +26,18 @@ void setup(void) {
   SPI.setClockDivider(SPI_CLOCK_DIV8);
 }
 
-byte transferAndWait(const byte what) {
-  byte a = SPI.transfer(what);
+byte transferAndWait(const byte inp) {
+  byte a = SPI.transfer(inp);
   delayMicroseconds(20);
   return a;
 }
 
 void loop(void) {
-  slave_1_poll();
-  slave_2_poll();
-  // register_user(1);
+  try_slave1();
+  try_slave2();
+
+  // check incomming string
   if (Serial.available() > 0) {
-    // Read the incoming string until a newline character is received
     String receivedString = Serial.readStringUntil('\n');
 
     // Check if the received string has exactly 32 characters
@@ -44,13 +45,10 @@ void loop(void) {
       // Remove the trailing newline character
       receivedString.trim();
       if (receivedString == "1") {
-        // Serial.println(receivedString);
         register_user(1);
       } else if (receivedString == "2") {
-        // Serial.println(receivedString);
         register_user(2);
       } else{
-        // Serial.println(receivedString);
         Serial.println("Something went wrong");
       }
     }
@@ -60,8 +58,8 @@ void loop(void) {
   }
 }
 
-void slave_1_poll() {
-  byte user_input[32];
+void try_slave1() {
+  byte user_input[tokenSize];
   bool user_verified = false;
 
   // enable Slave Select
@@ -69,39 +67,28 @@ void slave_1_poll() {
 
   byte has_input = transferAndWait('a');  // add command
   if (has_input == 1) {
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < tokenSize; i++) {
       user_input[i] = transferAndWait(i);
     }
-    user_input[31] = 'a';
-    for (int i = 0; i < 32; i++) {
-      // Serial.print(char(user_input[i]));
-    }
-    Serial.println("");
+    user_input[tokenSize-1] = 'a';
 
-    String user_input_str = byteArrayToString(user_input, 32);
+    String user_input_str = byteArrayToString(user_input, tokenSize);
     // verify whether uuid is present in the slave_1_passes
     for (int i = 0; i < DB_CAP; i++) {
       if (user_input_str == gate_1_passes[i]) {
-        // Serial.print("User verified in gate_1, UUID: ");
-        // Serial.println(user_input_str);
-
-        // send reply to the slave_1
         user_verified = true;
       }
     }
   }
-  digitalWrite(SS, HIGH);
+  digitalWrite(SS, HIGH);//close the connection with SLAVE_2
   delay(500);
   if (user_verified) {
     send_verification_to_slave_1();
   }
-  else{
-    // send_not_verified_to_slave_1();
-  }
 }
 
-void slave_2_poll() {
-  byte user_input[32];
+void try_slave2() {
+  byte user_input[tokenSize];
   bool user_verified = false;
 
   // enable Slave Select
@@ -109,22 +96,15 @@ void slave_2_poll() {
 
   byte has_input = transferAndWait('a');  // add command
   if (has_input == 1) {
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < tokenSize; i++) {
       user_input[i] = transferAndWait(i);
     }
-    user_input[31] = 'a';
-    for (int i = 0; i < 32; i++) {
-      // Serial.print(char(user_input[i]));
-    }
-    // Serial.println("");
+    user_input[tokenSize-1] = 'a';
 
-    String user_input_str = byteArrayToString(user_input, 32);
+    String user_input_str = byteArrayToString(user_input, tokenSize);
     // verify whether uuid is present in the slave_2_passes
     for (int i = 0; i < DB_CAP; i++) {
       if (user_input_str == gate_2_passes[i]) {
-        // Serial.print("User verified in gate_2, UUID: ");
-        // Serial.println(user_input_str);
-        // send reply to the slave_1
         user_verified = true;
       }
     }
@@ -134,8 +114,6 @@ void slave_2_poll() {
   delay(500);
   if (user_verified) {
     send_verification_to_slave_2();
-  } else{
-    // send_not_verified_to_slave_2();
   }
 }
 
@@ -149,20 +127,6 @@ void send_verification_to_slave_1() {
 void send_verification_to_slave_2() {
   digitalWrite(SS_2, LOW);
   transferAndWait('g');
-  digitalWrite(SS_2, HIGH);
-  delay(500);
-}
-
-void send_not_verified_to_slave_1() {
-  digitalWrite(SS, LOW);
-  transferAndWait('n');
-  digitalWrite(SS, HIGH);
-  delay(500);
-}
-
-void send_not_verified_to_slave_2() {
-  digitalWrite(SS_2, LOW);
-  transferAndWait('n');
   digitalWrite(SS_2, HIGH);
   delay(500);
 }
@@ -194,10 +158,9 @@ String removeCharFromString(String inputString, char charToRemove) {
 
 // function to receive the gate number and generate UUID and put it into relevant gate
 void register_user(int gate_num) {
-  if (gate_num == 1) {
+  if (gate_num == 2) {
     String temp_uuid = generateUUID();
-    temp_uuid[31] = 'a';
-    // Serial.print("UUID: ");
+    temp_uuid[tokenSize-1] = 'a';
     Serial.println(temp_uuid);
     gate_1_passes[gate_1_pos] = temp_uuid;
     if (gate_1_pos == (DB_CAP - 1)) {
@@ -205,12 +168,13 @@ void register_user(int gate_num) {
     } else {
       gate_1_pos++;
     }
-  } else {  // if this is for gate_2
+  } else{
     String temp_uuid = generateUUID();
-    temp_uuid[31] = 'a';
-    // Serial.print("UUID: ");
+    temp_uuid[tokenSize-1] = 'a';
     Serial.println(temp_uuid);
     gate_2_passes[gate_2_pos] = temp_uuid;
+
+    //change the index related to slave 2 token array
     if (gate_2_pos == (DB_CAP - 1)) {
       gate_2_pos = 0;
     } else {

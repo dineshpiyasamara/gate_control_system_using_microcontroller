@@ -16,13 +16,13 @@ void setup(void) {
   // turn on SPI in slave mode
   SPCR |= _BV(SPE);
 
+  // blink LED
   pinMode(7, OUTPUT);
 
   // turn on interrupts
   SPCR |= _BV(SPIE);
   Serial.begin(9600);
 }
-
 
 // SPI interrupt routine
 ISR(SPI_STC_vect) {
@@ -31,11 +31,10 @@ ISR(SPI_STC_vect) {
     Serial.println("Welcome");
     open_gate = true;
   } else{
-    // Serial.println("User not verified...");
+    // Gate should not open
   }
 
   switch (command) {
-    // no command? then this is the command
     case 0:
       if (user_input_available) {
         current_byte = 0;
@@ -55,8 +54,7 @@ ISR(SPI_STC_vect) {
       }
       break;
   }
-
-}  // end of interrupt service routine (ISR) SPI_STC_vect
+}
 
 void loop(void) {
   delay(100);
@@ -67,41 +65,32 @@ void loop(void) {
   if(open_gate){
     // Turn the LED on (HIGH)
     digitalWrite(7, HIGH);
-    delay(1000); // Wait for 1 second (1000 milliseconds)
+    delay(1000);
 
     // Turn the LED off (LOW)
     digitalWrite(7, LOW);
-    delay(1000); // Wait for 1 second (1000 milliseconds)
+    delay(1000);
 
     open_gate = false;
-    // Serial.println("Gate closed...");
   }
 
   if (Serial.available() > 0) {
-    // Read the incoming string until a newline character is received
+
     String receivedString = Serial.readString();
 
-    // Check if the received string has exactly 32 characters
     if (receivedString.length() == bufferSize) {
-      // Remove the trailing newline character
+
       receivedString.trim();
 
       // Copy the contents of the received string to the buffer
       receivedString.toCharArray(stringBuffer, bufferSize);
       user_input_available = true;
       SPDR = 1;
-      // Print the received and stored string for verification
-      // Serial.println("Received and transferred: " + String(stringBuffer));
+
     } else {
-      Serial.println("Invalid input. The string must have exactly 32 characters.");
+      Serial.println("Input is not valid");
     }
   }
-}
-
-String generateUUID() {
-  uuid.generate();
-  String uuid_str = String(uuid.toCharArray());
-  return removeCharFromString(uuid_str, '-');
 }
 
 String removeCharFromString(String inputString, char charToRemove) {
