@@ -4,7 +4,7 @@ import serial
 from utils import send_to_arduino, read_from_arduino
 
 root = tk.Tk()
-root.title('Gate Control System')
+root.title('Gate Controller System')
 root.geometry('300x330')
 root.resizable(False, False)
 
@@ -13,6 +13,7 @@ master_ser = serial.Serial(MASTER_PORT, 115200)
 
 key_var = tk.StringVar()
 gate_number = tk.StringVar()
+nic_number = tk.StringVar()
 
 def copy_label_value():
     label_text = key_var.get()
@@ -30,17 +31,25 @@ def reset_func():
     
 
 def generate_token():
-    if(len(gate_number.get()) != 0):
-        print(gate_number.get()[-1])
-        send_to_arduino(gate_number.get()[-1], master_ser)
+    if(len(nic_number.get()) >= 9 and nic_number.get()[:9].isdigit()):
+        if(len(gate_number.get()) != 0):
+            msg = nic_number.get()[:9] + gate_number.get()[-1]
 
-        while (master_ser.inWaiting() == 0):
-            pass
+            send_to_arduino(msg, master_ser)
 
-        token = read_from_arduino(master_ser)
-        print(token)
-        key_var.set(token)
-        reg_btn.configure(state='disabled')
+            while (master_ser.inWaiting() == 0):
+                pass
+
+            token = read_from_arduino(master_ser)
+            print(token)
+            key_var.set(token)
+            reg_btn.configure(state='disabled')
+        else:
+            key_var.set("Slave not selected")
+            root.after(1000, reset_func)
+    else:
+        key_var.set("Invalid NIC number")
+        root.after(1000, reset_func)
 
 heading = ttk.Label(root, text='MASTER', font='arial 20 bold')
 heading.pack(pady=10)
@@ -48,7 +57,7 @@ heading.pack(pady=10)
 ttk.Label(root).pack()
 
 nic_label = ttk.Label(root, text='NIC')
-nic_entry = ttk.Entry(root)
+nic_entry = ttk.Entry(root, textvariable=nic_number)
 nic_label.pack()
 nic_entry.pack()
 

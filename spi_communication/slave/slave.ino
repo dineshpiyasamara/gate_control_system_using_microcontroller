@@ -1,13 +1,10 @@
-#include "UUID.h"
-
 volatile byte command = 0;
-UUID uuid;
 
 const int bufferSize = 32;
 char stringBuffer[bufferSize];
-bool user_input_available = false;
-int current_byte = 0;
-bool open_gate = false;
+bool userInputAvailable = false;
+int currentByte = 0;
+bool openGate = false;
 void setup(void) {
 
   // have to send on master in, slave out
@@ -26,31 +23,31 @@ void setup(void) {
 
 // SPI interrupt routine
 ISR(SPI_STC_vect) {
-  byte c = SPDR;
-  if (c == 'g') {
+  byte mosi_value = SPDR;
+  if (mosi_value == 'x') {
     Serial.println("Welcome");
-    open_gate = true;
+    openGate = true;
   } else{
     // Gate should not open
   }
 
   switch (command) {
     case 0:
-      if (user_input_available) {
-        current_byte = 0;
-        command = c;
-        SPDR = stringBuffer[current_byte];
-        current_byte++;
+      if (userInputAvailable) {
+        currentByte = 0;
+        command = mosi_value;
+        SPDR = stringBuffer[currentByte];
+        currentByte++;
       }
       break;
 
     case 'a':
-      if (current_byte <= bufferSize) {
-        SPDR = stringBuffer[current_byte];
-        current_byte++;
+      if (currentByte <= bufferSize) {
+        SPDR = stringBuffer[currentByte];
+        currentByte++;
       } else {
-        current_byte = 0;
-        user_input_available = false;
+        currentByte = 0;
+        userInputAvailable = false;
       }
       break;
   }
@@ -62,7 +59,7 @@ void loop(void) {
     command = 0;
   }
 
-  if(open_gate){
+  if(openGate){
     // Turn the LED on (HIGH)
     digitalWrite(7, HIGH);
     delay(1000);
@@ -71,7 +68,7 @@ void loop(void) {
     digitalWrite(7, LOW);
     delay(1000);
 
-    open_gate = false;
+    openGate = false;
   }
 
   if (Serial.available() > 0) {
@@ -84,23 +81,11 @@ void loop(void) {
 
       // Copy the contents of the received string to the buffer
       receivedString.toCharArray(stringBuffer, bufferSize);
-      user_input_available = true;
+      userInputAvailable = true;
       SPDR = 1;
 
     } else {
       Serial.println("Input is not valid");
     }
   }
-}
-
-String removeCharFromString(String inputString, char charToRemove) {
-  String outputString = "";
-
-  for (int i = 0; i < inputString.length(); i++) {
-    if (inputString.charAt(i) != charToRemove) {
-      outputString += inputString.charAt(i);
-    }
-  }
-
-  return outputString;
 }

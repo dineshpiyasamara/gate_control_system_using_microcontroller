@@ -1,15 +1,14 @@
 #include <SPI.h>
-#include "UUID.h"
 
-#define DB_CAP 50
+#define CAPACITY 50
 #define SS_2 10
 
-UUID uuid;
-String gate_1_passes[DB_CAP];
-String gate_2_passes[DB_CAP];
 const int tokenSize = 32;
 int gate_1_pos = 0;
 int gate_2_pos = 0;
+
+String Slave1Tokens[CAPACITY];
+String Slave2Tokens[CAPACITY];
 
 void setup(void) {
   Serial.begin(115200);
@@ -41,13 +40,17 @@ void loop(void) {
     String receivedString = Serial.readStringUntil('\n');
 
     // Check if the received string has exactly 32 characters
-    if (receivedString.length() == 1) {
+    if (receivedString.length() == 10) {
       // Remove the trailing newline character
       receivedString.trim();
-      if (receivedString == "1") {
-        register_user(1);
-      } else if (receivedString == "2") {
-        register_user(2);
+
+      String gateNumber = receivedString.substring(9);
+      String randomFirstHalf = receivedString.substring(0, 9);
+
+      if (gateNumber == "1") {
+        register_user(1, randomFirstHalf);
+      } else if (gateNumber == "2") {
+        register_user(2, randomFirstHalf);
       } else{
         Serial.println("Something went wrong");
       }
@@ -74,16 +77,16 @@ void try_slave1() {
 
     String user_input_str = byteArrayToString(user_input, tokenSize);
     // verify whether uuid is present in the slave_1_passes
-    for (int i = 0; i < DB_CAP; i++) {
-      if (user_input_str == gate_1_passes[i]) {
+    for (int i = 0; i < CAPACITY; i++) {
+      if (user_input_str == Slave1Tokens[i]) {
         user_verified = true;
       }
     }
   }
-  digitalWrite(SS, HIGH);//close the connection with SLAVE_2
+  digitalWrite(SS, HIGH);//close the connection with SLAVE_1
   delay(500);
   if (user_verified) {
-    send_verification_to_slave_1();
+    verifySlave1();
   }
 }
 
@@ -103,8 +106,8 @@ void try_slave2() {
 
     String user_input_str = byteArrayToString(user_input, tokenSize);
     // verify whether uuid is present in the slave_2_passes
-    for (int i = 0; i < DB_CAP; i++) {
-      if (user_input_str == gate_2_passes[i]) {
+    for (int i = 0; i < CAPACITY; i++) {
+      if (user_input_str == Slave2Tokens[i]) {
         user_verified = true;
       }
     }
@@ -113,20 +116,20 @@ void try_slave2() {
   digitalWrite(SS_2, HIGH);
   delay(500);
   if (user_verified) {
-    send_verification_to_slave_2();
+    verifySlave2();
   }
 }
 
-void send_verification_to_slave_1() {
+void verifySlave1() {
   digitalWrite(SS, LOW);
-  transferAndWait('g');
+  transferAndWait('x');
   digitalWrite(SS, HIGH);
   delay(500);
 }
 
-void send_verification_to_slave_2() {
+void verifySlave2() {
   digitalWrite(SS_2, LOW);
-  transferAndWait('g');
+  transferAndWait('x');
   digitalWrite(SS_2, HIGH);
   delay(500);
 }
@@ -139,43 +142,37 @@ String byteArrayToString(byte byteArray[], int length) {
   return result;
 }
 
-String generateUUID() {
-  uuid.generate();
-  String uuid_str = String(uuid.toCharArray());
-  return removeCharFromString(uuid_str, '-');
-}
+String generateAlphanumericCode() {
+  String characters = "abcdefghijklmnopqrstuvwxyz0123456789";
+  String code = "";
 
-String removeCharFromString(String inputString, char charToRemove) {
-  String outputString = "";
-
-  for (int i = 0; i < inputString.length(); i++) {
-    if (inputString.charAt(i) != charToRemove) {
-      outputString += inputString.charAt(i);
-    }
+  for (int i = 0; i < tokenSize-9; i++) {
+    int randomIndex = random(characters.length());
+    code += characters.charAt(randomIndex);
   }
-  return outputString;
+  return code;
 }
 
 // function to receive the gate number and generate UUID and put it into relevant gate
-void register_user(int gate_num) {
+void register_user(int gate_num, String randomFirstHalf) {
   if (gate_num == 2) {
-    String temp_uuid = generateUUID();
+    String temp_uuid = randomFirstHalf + generateAlphanumericCode();
     temp_uuid[tokenSize-1] = 'a';
     Serial.println(temp_uuid);
-    gate_1_passes[gate_1_pos] = temp_uuid;
-    if (gate_1_pos == (DB_CAP - 1)) {
+
+    Slave1Tokens[gate_1_pos] = temp_uuid;
+    if (gate_1_pos == (CAPACITY - 1)) {
       gate_1_pos = 0;
     } else {
       gate_1_pos++;
     }
   } else{
-    String temp_uuid = generateUUID();
+    String temp_uuid = randomFirstHalf + generateAlphanumericCode();
     temp_uuid[tokenSize-1] = 'a';
     Serial.println(temp_uuid);
-    gate_2_passes[gate_2_pos] = temp_uuid;
+    Slave2Tokens[gate_2_pos] = temp_uuid;
 
-    //change the index related to slave 2 token array
-    if (gate_2_pos == (DB_CAP - 1)) {
+    if (gate_2_pos == (CAPACITY - 1)) {
       gate_2_pos = 0;
     } else {
       gate_2_pos++;
