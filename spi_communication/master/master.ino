@@ -80,6 +80,7 @@ void try_slave1() {
     for (int i = 0; i < CAPACITY; i++) {
       if (user_input_str == Slave1Tokens[i]) {
         user_verified = true;
+        Slave1Tokens[i] = "";
       }
     }
   }
@@ -109,6 +110,7 @@ void try_slave2() {
     for (int i = 0; i < CAPACITY; i++) {
       if (user_input_str == Slave2Tokens[i]) {
         user_verified = true;
+        Slave2Tokens[i] = "";
       }
     }
   }

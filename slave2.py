@@ -10,7 +10,7 @@ root.title("Gate Control System")
 root.geometry('300x250')
 root.resizable(False, False)
 
-SLAVE2_PORT = 'COM3'
+SLAVE2_PORT = 'COM4'
 slave_ser = serial.Serial(SLAVE2_PORT, 9600)
 
 
