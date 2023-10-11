@@ -1,6 +1,6 @@
 2023-10-10 11:53:34,965 - INFO - Port Connected
-2023-10-10 11:54:02,894 - INFO - First 9 characters from NIC: 975258647
+2023-10-10 11:54:02,894 - INFO - First 9 characters from NIC: xxxxxxxxx
 2023-10-10 11:54:02,895 - INFO - Slave ID: 1
-2023-10-10 11:54:02,997 - INFO - Send to Microcontroller: 9752586471
-2023-10-10 11:54:03,866 - INFO - Read token friom Microcontroller: 9752586475zfcwiy09bary01lhzq2pba
-2023-10-10 11:54:04,921 - INFO - Copied token: 9752586475zfcwiy09bary01lhzq2pba
+2023-10-10 11:54:02,997 - INFO - Send to Microcontroller: xxxxxxxx
+2023-10-10 11:54:03,866 - INFO - Read token friom Microcontroller: xxxxxxxxxxxxxxxxxxxxxxxxxx
+2023-10-10 11:54:04,921 - INFO - Copied token: xxxxxxxxxxxxxxxxxxxxxxxxxxxx
